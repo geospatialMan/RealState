@@ -1,0 +1,199 @@
+#DB connection
+db_name: 'postgres'
+user: 'postgres'
+password: 'sam'
+port: '5433'
+
+
+#Project details
+feed: '001'
+locator: 'ERA'
+
+#Url
+base_url: 'https://www.era.pt'
+search_url: 'https://www.era.pt/API/ServicesModule/Property/SearchMap'
+card_url: 'https://www.era.pt/API/ServicesModule/Property/MapCards'
+
+#Search parameters
+city_search: &city_search Tomar
+
+body_search: {"propertiesTypeId":[1,2],"businessTypes":[1,2,3],
+                               "propertyTypes":[1,2,5,8],"searchtext": *city_search,
+                               "isResidential":True,"nonResidential":False,
+                               "onlyDevelopments":False,"zoom":15}
+
+insert_raw_api: |
+    INSERT INTO raw_eraapi (
+    feed,
+    scrapedate,
+    executionid,
+    locator,
+    photourl,
+    description,
+    detailurl,
+    businesstype,
+    elevator,
+    floor,
+    locationid,
+    landarea,
+    lat,
+    lng,
+    localization,
+    netarea,
+    owner,
+    parking,
+    propertytype,
+    rooms,
+    sellpricename,
+    sellpricevalue,
+    sellpricepreviousvalue,
+    sellpricevariation,
+    title,
+    wcs,
+    fractionnumb,
+    floornumb,
+    housingarea,
+    listingbuildingarea,
+    implantationarea,
+    constructionfeasibility,
+    walled,
+    pricenetarea,
+    pricelistingarea,
+    pricelandarea,
+    rentpricenetarea,
+    rentpricelistingarea,
+    rentpricelandarea,
+    subleasepricenetarea,
+    subleasepricelistingarea,
+    subleasepricelandarea)
+    VALUES (
+    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+    );
+
+
+#Wrangle parameters
+intersect_admin_levels: |
+  SELECT 
+      p.lat,
+      p.lng,
+      p.scrapedate,
+      p.feed,
+      p.executionid,
+      p.locator,
+      p.photourl,
+      p.description,
+      p.detailurl,
+      p.businesstype,
+      p.elevator,
+      p.floor,
+      p.locationid,
+      p.landarea,
+      p.localization,
+      p.netarea,
+      p.owner,
+      p.parking,
+      p.propertytype,
+      p.rooms,
+      p.sellpricename,
+      p.sellpricevalue,
+      p.sellpricepreviousvalue,
+      p.sellpricevariation,
+      p.title,
+      p.wcs,
+      p.fractionnumb,
+      p.floornumb,
+      p.housingarea,
+      p.listingbuildingarea,
+      p.implantationarea,
+      p.constructionfeasibility,
+      p.walled,
+      p.pricenetarea,
+      p.pricelistingarea,
+      p.pricelandarea,
+      p.rentpricenetarea,
+      p.rentpricelistingarea,
+      p.rentpricelandarea,
+      p.subleasepricenetarea,
+      p.subleasepricelistingarea,
+      p.subleasepricelandarea,
+      m.freguesia,
+      m.municipio,
+      m.distrito_i,
+      m.nuts3,
+      m.nuts2,
+      m.nuts1
+  FROM raw_eraapi p
+  JOIN freguesias m
+  ON ST_Within(
+      ST_SetSRID(
+          ST_MakePoint(
+              REPLACE(p.lng, ',', '.')::DOUBLE PRECISION,
+              REPLACE(p.lat, ',', '.')::DOUBLE PRECISION
+          ), 4326
+      ),
+      m.geom
+  )
+  WHERE p.lat IS NOT NULL AND p.lng IS NOT NULL;
+
+  
+insert_query: |
+    INSERT INTO eraapi_001 (
+    lat,
+    lng,
+    scrapedate,
+    feed,
+    executionid,
+    locator,
+    photourl,
+    description,
+    detailurl,
+    businesstype,
+    elevator,
+    floor,
+    locationid,
+    landarea,
+    localization,
+    netarea,
+    owner,
+    parking,
+    propertytype,
+    rooms,
+    sellpricename,
+    sellpricevalue,
+    sellpricepreviousvalue,
+    sellpricevariation,
+    title,
+    wcs,
+    fractionnumb,
+    floornumb,
+    housingarea,
+    listingbuildingarea,
+    implantationarea,
+    constructionfeasibility,
+    walled,
+    pricenetarea,
+    pricelistingarea,
+    pricelandarea,
+    rentpricenetarea,
+    rentpricelistingarea,
+    rentpricelandarea,
+    subleasepricenetarea,
+    subleasepricelistingarea,
+    subleasepricelandarea,
+    county,
+    municipality,
+    district,
+    nuts3,
+    nuts2,
+    nuts1,
+    geom
+    )
+    VALUES (
+    REPLACE(%s, ',', '.')::DOUBLE PRECISION,  
+    REPLACE(%s, ',', '.')::DOUBLE PRECISION,
+    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+    %s,%s,%s,%s,%s,%s,
+    ST_SetSRID(ST_MakePoint(REPLACE(%s, ',', '.')::DOUBLE PRECISION, REPLACE(%s, ',', '.')::DOUBLE PRECISION), 4326)::geography);
