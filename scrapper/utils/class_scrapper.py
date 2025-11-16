@@ -22,8 +22,8 @@ class Scrapper:
         return response.json()
         
     def fetch_token(self,html):
-        html_soup = BeautifulSoup(html,'html.parser')
+        html_soup = BeautifulSoup(html,"html.parser")
         
-        token_input = html_soup.find('input', {'name': '__RequestVerificationToken'}).get('value')
+        token_input = html_soup.find("input", {"name": "__RequestVerificationToken"}).get("value")
         
         return token_input

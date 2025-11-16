@@ -1,21 +1,30 @@
+import sys
 import yaml
 from utils import class_db
 
-with open('scrapper/config_era.yaml', 'r') as file:
-    config = yaml.safe_load(file)
+try:
+    with open("scrapper/utils/config_era.yaml", "r") as file:
+        config = yaml.safe_load(file)
+except FileNotFoundError:
+    print("Config file not found")
+    sys.exit()
 
-db_instace = class_db.DbMethods()
-create_cursor = db_instace.create_cursor(db_name=config['db_name'], user=config['user'],
-                                          password=config['password'], port=config['port'])
 
-rows = db_instace.query_data(config['intersect_admin_levels'])
+try:
+    db_instace = class_db.DbMethods()
+    create_cursor = db_instace.create_cursor(db_name=config["db_name"], user=config["user"],
+                                            password=config["password"], port=config["port"])
 
-for row in rows:
+    rows = db_instace.query_data(config["intersect_admin_levels"])
 
-    lat = row[0]
-    lng = row[1]
+    for row in rows:
 
-    params = row + (lng, lat)
-    db_instace.execute_query(config['insert_query'], params, commit=True)
+        lat = row[0]
+        lng = row[1]
 
-db_instace.close()
+        params = row + (lng, lat)
+        db_instace.execute_query(config["insert_query"], params, commit=True)
+
+    db_instace.close()
+except Exception as e:
+    print(f"Please check {e}")

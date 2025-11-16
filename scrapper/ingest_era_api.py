@@ -1,23 +1,27 @@
+import sys
 import json
 import asyncio
-import os
 import yaml
+import requests
 from utils import class_scrapper
 from utils import class_db
 
-with open('scrapper/config_era.yaml', 'r') as file:
-    config = yaml.safe_load(file)
-
+try:
+    with open("scrapper/utils/config_era.yaml", "r") as file:
+        config = yaml.safe_load(file)
+except FileNotFoundError:
+    print("Config file not found")
+    sys.exit()
 
 async def fetch_data(scrapper,location_id):
     
     try:
+    
         payload = [{"Id":location_id,"IsDevelopment":False}]
         payload_json = json.dumps(payload)
 
-        response = scrapper.post_requests(url = config['card_url'],data = payload_json)
+        response = scrapper.post_requests(url = config["card_url"],data = payload_json)
 
-        
         adds = [
         (
             scrapper.feed,                              
@@ -67,18 +71,18 @@ async def fetch_data(scrapper,location_id):
         
         db_instace = class_db.DbMethods()
 
-        db_instace.create_cursor(db_name=config['db_name'], user=config['user'],
-                                  password=config['password'], port=config['port'])
+        db_instace.create_cursor(db_name=config["db_name"], user=config["user"],
+                                    password=config["password"], port=config["port"])
         
         for add in adds:
-            db_instace.execute_query(config['insert_raw_api'],add,True)
+            db_instace.execute_query(config["insert_raw_api"],add,True)
         
         db_instace.close()
-    
-    except:
-        f'{location_id} not done'
-          
-    
+
+    except TypeError:
+        print(f"{location_id} not done")
+
+
 async def main(id_list,scrapper):
     
     tasks = []
@@ -91,28 +95,35 @@ async def main(id_list,scrapper):
     
     return results    
 
-if __name__ == '__main__':
-    scrapper = class_scrapper.Scrapper()
-    scrapper.feed  = config["feed"]
-    scrapper.locator = config["locator"]
-    
-    
-    cookies_token, token_html = scrapper.get_request(config["base_url"])
+if __name__ == "__main__":
+    try:
+        scrapper = class_scrapper.Scrapper()
+        scrapper.feed  = config["feed"]
+        scrapper.locator = config["locator"]
+        
+        
+        cookies_token, token_html = scrapper.get_request(config["base_url"])
+        verification_token = scrapper.fetch_token(token_html)
+        scrapper.session.headers.update({"cookie":f"__RequestVerificationToken={cookies_token};",
+                        "requestverificationtoken":verification_token,
+                        "Content-Type": "application/json"})
 
-    verification_token = scrapper.fetch_token(token_html)
+        body_search = config["body_search"]
+        
+        body_search_json = json.dumps(body_search)
+        response_search = scrapper.post_requests(config["search_url"], data=body_search_json)
 
-    scrapper.session.headers.update({"cookie":f"__RequestVerificationToken={cookies_token};",
-                    "requestverificationtoken":verification_token,
-                    "Content-Type": "application/json"})
+        all_ids = [i["Id"] for i in response_search["Properties"]]
 
-    city_search = config['city_search']
+        full_data = asyncio.run(main(all_ids,scrapper))
 
-    body_search = config['body_search']
-    
-    body_search_json = json.dumps(body_search)
+    except AttributeError:
+        print("It was not possible to generate token!")
+    except requests.RequestException as e:
+        print("A network or HTTP error occurred:", e)
+    except ValueError:
+        print("Response was not valid JSON.")
+    except Exception as e:
+        print(f"Please check {e}")
 
-    response_search = scrapper.post_requests(config['search_url'], data=body_search_json)
 
-    all_ids = [i['Id'] for i in response_search["Properties"]]
-
-    full_data = asyncio.run(main(all_ids,scrapper))
