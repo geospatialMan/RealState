@@ -17,7 +17,7 @@ card_url: 'https://www.era.pt/API/ServicesModule/Property/MapCards'
 
 
 #Search parameters
-city_search: &city_search Carregueiros
+city_search: &city_search Tomar
 
 body_search: {"propertiesTypeId":[1,2],"businessTypes":[1,2,3],
                                "propertyTypes":[1,2,5,8],"searchtext": *city_search,

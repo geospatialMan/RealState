@@ -14,7 +14,6 @@ except FileNotFoundError:
     sys.exit()
 
 async def fetch_data(scrapper,location_id):
-    
     try:
     
         payload = [{"Id":location_id,"IsDevelopment":False}]
@@ -100,6 +99,7 @@ if __name__ == "__main__":
         scrapper = class_scrapper.Scrapper()
         scrapper.feed  = config["feed"]
         scrapper.locator = config["locator"]
+        scrapper.configure_retry(5)
         
         
         cookies_token, token_html = scrapper.get_request(config["base_url"])
@@ -125,5 +125,3 @@ if __name__ == "__main__":
         print("Response was not valid JSON.")
     except Exception as e:
         print(f"Please check {e}")
-
-
