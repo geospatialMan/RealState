@@ -12,8 +12,12 @@ except FileNotFoundError:
 
 try:
     db_instace = class_db.DbMethods()
-    create_cursor = db_instace.create_cursor(db_name=config["db_name"], user=config["user"],
-                                            password=config["password"], port=config["port"])
+    create_cursor = db_instace.create_cursor(
+        db_name=config["db_name"],
+        user=config["user"],
+        password=config["password"],
+        port=config["port"],
+    )
 
     rows = db_instace.query_data(config["intersect_admin_levels"])
 
